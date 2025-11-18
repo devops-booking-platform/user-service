@@ -1,0 +1,71 @@
+﻿using Moq;
+using UserService.Common.Exceptions;
+using UserService.Domain.Entities;
+using UserService.DTO;
+using UserService.Repositories.Interfaces;
+using UserService.Services.Implementations;
+
+namespace UserService.UnitTests.Services
+{
+    public class AuthServiceTests
+    {
+        private readonly Mock<IUserRepository> _userRepositoryMock;
+        private readonly AuthService _sut;
+
+        public AuthServiceTests()
+        {
+            _userRepositoryMock = new Mock<IUserRepository>();
+            _sut = new AuthService(_userRepositoryMock.Object);
+        }
+
+        [Fact]
+        public async Task RegisterAsync_Should_ReturnError_WhenEmailOrUsernameExists()
+        {
+            var dto = new RegisterRequestDTO
+            {
+                Username = "testuser",
+                Email = "test@example.com",
+                Password = "password",
+                FirstName = "Test",
+                LastName = "Test",
+                Address = "Address",
+                Role = Domain.Enums.UserRole.Host
+            };
+
+            _userRepositoryMock.Setup(r => r.ExistsByUsernameOrEmailAsync(dto.Username, dto.Email)).ReturnsAsync(true);
+            var act = () => _sut.RegisterAsync(dto);
+            var ex = await Assert.ThrowsAsync<ConflictException>(act);
+            Assert.Equal("User with given username or email already exists.", ex.Message);
+            _userRepositoryMock.Verify(r => r.AddAsync(It.IsAny<User>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task RegisterAsync_Should_CreateUser_WhenUserDoesNotExist()
+        {
+            var dto = new RegisterRequestDTO
+            {
+                Username = "testuser123",
+                Email = "test@example.com123",
+                Password = "password",
+                FirstName = "Test",
+                LastName = "Test",
+                Address = "Address",
+                Role = Domain.Enums.UserRole.Host
+            };
+            _userRepositoryMock.Setup(r => r.ExistsByUsernameOrEmailAsync(dto.Username, dto.Email)).ReturnsAsync(false);
+
+            await _sut.RegisterAsync(dto);
+            _userRepositoryMock.Verify(
+               r => r.AddAsync(It.Is<User>(u =>
+                   u.Username == dto.Username &&
+                   u.Email == dto.Email &&
+                   u.FirstName == dto.FirstName &&
+                   u.LastName == dto.LastName &&
+                   u.Address == dto.Address &&
+                   u.Role == dto.Role &&
+                   !string.IsNullOrEmpty(u.PasswordHash)
+               )),
+               Times.Once);
+        }
+    }
+}
