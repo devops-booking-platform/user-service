@@ -1,4 +1,5 @@
-﻿using UserService.Domain.Entities;
+﻿using UserService.Common.Exceptions;
+using UserService.Domain.Entities;
 using UserService.DTO;
 using UserService.Repositories.Interfaces;
 using UserService.Services.Interfaces;
@@ -19,7 +20,7 @@ namespace UserService.Services.Implementations
 
             if (userExists)
             {
-                throw new InvalidOperationException("User with given username or email already exists.");
+                throw new ConflictException("User with given username or email already exists.");
             }
 
             var passwordHash = BCrypt.Net.BCrypt.HashPassword(registerRequest.Password);

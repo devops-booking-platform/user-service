@@ -3,7 +3,7 @@ using UserService.Repositories.Interfaces;
 using UserService.Services.Implementations;
 using UserService.Services.Interfaces;
 
-namespace UserService.Extensions
+namespace UserService.Infrastructure.Extensions
 {
     public static class ServiceCollectionExtensions
     {
