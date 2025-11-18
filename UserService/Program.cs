@@ -30,3 +30,4 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapGet("/health", () => "OK");
 app.Run();
+public partial class Program { }
