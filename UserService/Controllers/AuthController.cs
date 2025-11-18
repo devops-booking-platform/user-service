@@ -17,11 +17,6 @@ namespace UserService.Controllers
         [HttpPost]
         public async Task<IActionResult> Register([FromBody] RegisterRequestDTO registerRequest)
         {
-            if (!ModelState.IsValid)
-            {
-                return ValidationProblem(ModelState);
-            }
-
             await _authService.RegisterAsync(registerRequest);
             return StatusCode(StatusCodes.Status201Created);
         }
