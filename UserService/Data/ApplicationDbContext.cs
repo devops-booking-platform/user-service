@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using UserService.Models;
+using UserService.Domain.Entities;
 
 namespace UserService.Data
 {
@@ -7,6 +7,5 @@ namespace UserService.Data
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
         public DbSet<User> Users {get; set;}
-        
     }
 }
