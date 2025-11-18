@@ -26,7 +26,6 @@ namespace UserService.Services.Implementations
             var passwordHash = BCrypt.Net.BCrypt.HashPassword(registerRequest.Password);
             var user = new User
             {
-                Id = Guid.NewGuid(),
                 Username = registerRequest.Username,
                 PasswordHash = passwordHash,
                 FirstName = registerRequest.FirstName,
