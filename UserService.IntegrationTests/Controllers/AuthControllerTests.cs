@@ -54,11 +54,11 @@ namespace UserService.IntegrationTests.Controllers
                 role = 0
             };
 
-            var response1 = await _client.PostAsJsonAsync("/api/Auth/Register", dto);
+            var response1 = await _client.PostAsJsonAsync("/api/auth/register", dto);
 
             Assert.Equal(HttpStatusCode.Created, response1.StatusCode);
 
-            var response2 = await _client.PostAsJsonAsync("/api/Auth/Register", dto);
+            var response2 = await _client.PostAsJsonAsync("/api/auth/register", dto);
 
             Assert.Equal(HttpStatusCode.Conflict, response2.StatusCode);
 
@@ -77,7 +77,7 @@ namespace UserService.IntegrationTests.Controllers
                 password = "somePassword"
             };
 
-            var response = await _client.PostAsJsonAsync("/api/Auth/Login", dto);
+            var response = await _client.PostAsJsonAsync("/api/auth/login", dto);
 
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
 
@@ -101,7 +101,7 @@ namespace UserService.IntegrationTests.Controllers
                 password
             };
 
-            var response = await _client.PostAsJsonAsync("/api/Auth/Login", dto);
+            var response = await _client.PostAsJsonAsync("/api/auth/login", dto);
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 

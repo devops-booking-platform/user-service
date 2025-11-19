@@ -20,7 +20,7 @@ namespace UserService.Infrastructure.Extensions
         {
             services.AddSwaggerGen(options =>
             {
-                options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+                options.AddSecurityDefinition(JwtBearerDefaults.AuthenticationScheme, new Microsoft.OpenApi.Models.OpenApiSecurityScheme
                 {
                     Name = "Authorization",
                     Description = "JWT Authorization header using the Bearer scheme. Example: \"Bearer {token}\"",

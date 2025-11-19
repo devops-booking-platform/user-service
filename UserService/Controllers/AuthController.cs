@@ -1,11 +1,10 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using UserService.DTO;
 using UserService.Services.Interfaces;
 
 namespace UserService.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/auth")]
     [ApiController]
     public class AuthController : ControllerBase
     {
@@ -26,7 +25,7 @@ namespace UserService.Controllers
         public async Task<IActionResult> Login([FromBody] LoginRequestDTO loginRequest)
         {
             var jwtToken = await _authService.LoginAsync(loginRequest);
-            return Ok(new LoginResponseDTO{ Token = jwtToken });
+            return Ok(new LoginResponseDTO { Token = jwtToken });
         }
     }
 }

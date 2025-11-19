@@ -22,9 +22,9 @@ namespace UserService.Services.Implementations
             var creds = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
             var claims = new List<Claim>
             {
-                new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-                new(JwtRegisteredClaimNames.UniqueName, user.Username),
-                new("role", user.Role.ToString()),
+                new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new(ClaimTypes.Name, user.Username),
+                new(ClaimTypes.Role, user.Role.ToString()),
             };
            
             var tokenDescriptor = new SecurityTokenDescriptor
