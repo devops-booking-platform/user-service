@@ -70,5 +70,93 @@ namespace UserService.UnitTests.Services
                )),
                Times.Once);
         }
+
+        [Fact]
+        public async Task LoginAsync_Should_ThrowUnauthorized_WhenUserDoesNotExist()
+        {
+            var dto = new LoginRequestDTO
+            {
+                Username = "unknownUser",
+                Password = "somePassword"
+            };
+
+            _userRepositoryMock
+                .Setup(r => r.GetByUsernameAsync(dto.Username))
+                .ReturnsAsync((User?)null);
+
+            var act = () => _sut.LoginAsync(dto);
+
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(act);
+            _tokenServiceMock.Verify(t => t.GenerateToken(It.IsAny<User>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task LoginAsync_Should_ThrowUnauthorized_WhenPasswordIsInvalid()
+        {
+            var dto = new LoginRequestDTO
+            {
+                Username = "testuser",
+                Password = "wrongPassword"
+            };
+
+            var correctPassword = "correctPassword";
+            var user = new User
+            {
+                Id = Guid.NewGuid(),
+                Username = dto.Username,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(correctPassword),
+                Email = "test@example.com",
+                FirstName = "Test",
+                LastName = "User",
+                Address = "Address",
+                Role = Domain.Enums.UserRole.Host
+            };
+
+            _userRepositoryMock
+                .Setup(r => r.GetByUsernameAsync(dto.Username))
+                .ReturnsAsync(user);
+
+            var act = () => _sut.LoginAsync(dto);
+
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(act);
+            _tokenServiceMock.Verify(t => t.GenerateToken(It.IsAny<User>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task LoginAsync_Should_ReturnToken_WhenCredentialsAreValid()
+        {
+            var dto = new LoginRequestDTO
+            {
+                Username = "testuser",
+                Password = "correctPassword"
+            };
+
+            var user = new User
+            {
+                Id = Guid.NewGuid(),
+                Username = dto.Username,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+                Email = "test@example.com",
+                FirstName = "Test",
+                LastName = "User",
+                Address = "Address",
+                Role = Domain.Enums.UserRole.Host
+            };
+
+            _userRepositoryMock
+                .Setup(r => r.GetByUsernameAsync(dto.Username))
+                .ReturnsAsync(user);
+
+            var expectedToken = "jwt-token-value";
+
+            _tokenServiceMock
+                .Setup(t => t.GenerateToken(user))
+                .Returns(expectedToken);
+
+            var result = await _sut.LoginAsync(dto);
+
+            Assert.Equal(expectedToken, result);
+            _tokenServiceMock.Verify(t => t.GenerateToken(user), Times.Once);
+        }
     }
 }

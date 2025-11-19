@@ -26,7 +26,7 @@ namespace UserService.Controllers
         public async Task<IActionResult> Login([FromBody] LoginRequestDTO loginRequest)
         {
             var jwtToken = await _authService.LoginAsync(loginRequest);
-            return Ok(jwtToken);
+            return Ok(new LoginResponseDTO{ Token = jwtToken });
         }
     }
 }
