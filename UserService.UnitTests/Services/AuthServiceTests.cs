@@ -4,18 +4,21 @@ using UserService.Domain.Entities;
 using UserService.DTO;
 using UserService.Repositories.Interfaces;
 using UserService.Services.Implementations;
+using UserService.Services.Interfaces;
 
 namespace UserService.UnitTests.Services
 {
     public class AuthServiceTests
     {
         private readonly Mock<IUserRepository> _userRepositoryMock;
+        private readonly Mock<ITokenService> _tokenServiceMock;
         private readonly AuthService _sut;
 
         public AuthServiceTests()
         {
             _userRepositoryMock = new Mock<IUserRepository>();
-            _sut = new AuthService(_userRepositoryMock.Object);
+            _tokenServiceMock = new Mock<ITokenService>();
+            _sut = new AuthService(_userRepositoryMock.Object, _tokenServiceMock.Object);
         }
 
         [Fact]

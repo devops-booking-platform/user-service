@@ -9,10 +9,33 @@ namespace UserService.Services.Implementations
     public class AuthService : IAuthService
     {
         private readonly IUserRepository _userRepository;
-        public AuthService(IUserRepository userRepository)
+        private readonly ITokenService _tokenService;
+        public AuthService(IUserRepository userRepository, ITokenService tokenService)
         {
             _userRepository = userRepository;
+            _tokenService = tokenService;
         }
+
+        public async Task<string> LoginAsync(LoginRequestDTO loginRequest)
+        {
+            var user = await _userRepository.GetByUsernameAsync(loginRequest.Username);
+
+            if (user == null)
+            {
+                throw new UnauthorizedAccessException("Invalid username or password.");
+            }
+
+            var isValidPassword = BCrypt.Net.BCrypt.Verify(loginRequest.Password, user.PasswordHash);
+
+            if (!isValidPassword)
+            {
+                throw new UnauthorizedAccessException("Invalid username or password.");
+            }
+
+            var token = _tokenService.GenerateToken(user);
+            return token;
+        }
+
         public async Task RegisterAsync(RegisterRequestDTO registerRequest)
         {
             var userExists = await _userRepository

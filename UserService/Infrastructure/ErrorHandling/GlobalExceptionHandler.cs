@@ -11,6 +11,7 @@ namespace UserService.Infrastructure.ErrorHandling
             var statusCode = exception switch
             {
                 ConflictException => StatusCodes.Status409Conflict,
+                UnauthorizedAccessException => StatusCodes.Status401Unauthorized,
                 _ => StatusCodes.Status500InternalServerError
             };
 
