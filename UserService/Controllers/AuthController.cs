@@ -4,7 +4,7 @@ using UserService.Services.Interfaces;
 
 namespace UserService.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/auth")]
     [ApiController]
     public class AuthController : ControllerBase
     {
@@ -14,11 +14,18 @@ namespace UserService.Controllers
             _authService = authService;
         }
 
-        [HttpPost]
+        [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequestDTO registerRequest)
         {
             await _authService.RegisterAsync(registerRequest);
             return StatusCode(StatusCodes.Status201Created);
+        }
+
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] LoginRequestDTO loginRequest)
+        {
+            var jwtToken = await _authService.LoginAsync(loginRequest);
+            return Ok(new LoginResponseDTO { Token = jwtToken });
         }
     }
 }
