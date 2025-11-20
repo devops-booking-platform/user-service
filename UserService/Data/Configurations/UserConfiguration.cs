@@ -11,6 +11,10 @@ namespace UserService.Data.Configurations
         {
             builder.HasKey(x => x.Id);
 
+            builder.Property(x => x.Id)
+                .ValueGeneratedOnAdd()
+                .HasDefaultValueSql("NEWSEQUENTIALID()");
+
             builder.Property(x => x.Username)
                 .IsRequired()
                 .HasMaxLength(ValidationConstants.MaxStringLength);
