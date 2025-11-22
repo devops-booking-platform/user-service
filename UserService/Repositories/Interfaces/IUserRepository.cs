@@ -9,5 +9,6 @@ namespace UserService.Repositories.Interfaces
         Task AddAsync(User user);
         Task<User?> GetByIdAsync(Guid id);
         Task<User?> GetByUsernameAsync(string username);
+        Task DeleteAsync(User user);
     }
 }

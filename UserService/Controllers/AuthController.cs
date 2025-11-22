@@ -27,5 +27,12 @@ namespace UserService.Controllers
             var jwtToken = await _authService.LoginAsync(loginRequest);
             return Ok(new LoginResponseDTO { Token = jwtToken });
         }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteAccount()
+        {
+            await _authService.Delete();
+            return NoContent();
+        }
     }
 }

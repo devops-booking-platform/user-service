@@ -19,7 +19,7 @@ namespace UserService.Services.Implementations
         public string GenerateToken(User user)
         {
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key));
-            var creds = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
             var claims = new List<Claim>
             {
                 new(ClaimTypes.NameIdentifier, user.Id.ToString()),
@@ -31,12 +31,12 @@ namespace UserService.Services.Implementations
             {
                 Subject = new ClaimsIdentity(claims),
                 Expires = DateTime.UtcNow.AddMinutes(_jwtSettings.ExpiryMinutes),
-                SigningCredentials = creds,
+                SigningCredentials = credentials,
                 Issuer = _jwtSettings.Issuer,
                 Audience = _jwtSettings.Audience,
             };
             var handler = new JsonWebTokenHandler();
-            string token = handler.CreateToken(tokenDescriptor);
+            var token = handler.CreateToken(tokenDescriptor);
             return token;
         }
     }
