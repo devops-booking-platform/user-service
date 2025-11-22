@@ -12,10 +12,12 @@ namespace UserService.Services.Implementations
     public class TokenService : ITokenService
     {
         private readonly JwtSettings _jwtSettings;
+
         public TokenService(IOptions<JwtSettings> jwtOptions)
         {
             _jwtSettings = jwtOptions.Value;
         }
+
         public string GenerateToken(User user)
         {
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key));
@@ -26,7 +28,7 @@ namespace UserService.Services.Implementations
                 new(ClaimTypes.Name, user.Username),
                 new(ClaimTypes.Role, user.Role.ToString()),
             };
-           
+
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(claims),

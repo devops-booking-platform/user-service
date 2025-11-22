@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using UserService.Common.Exceptions;
+﻿using UserService.Common.Exceptions;
 using UserService.Domain.Entities;
 using UserService.DTO;
 using UserService.Repositories.Interfaces;
@@ -9,7 +8,8 @@ namespace UserService.Services.Implementations
 {
     public class AuthService(IUserRepository userRepository,
         ITokenService tokenService,
-        ICurrentUserService currentUserService) : IAuthService
+        ICurrentUserService currentUserService,
+        IUnitOfWork unitOfWork) : IAuthService
     {
         public async Task<string> LoginAsync(LoginRequestDTO loginRequest)
         {
@@ -54,6 +54,7 @@ namespace UserService.Services.Implementations
             };
 
             await userRepository.AddAsync(user);
+            await unitOfWork.SaveChangesAsync();
         }
 
         public async Task Delete()
@@ -61,7 +62,6 @@ namespace UserService.Services.Implementations
             var userId = currentUserService.UserId;
 
             // TODO: based on role do validations and deletions on other services
-            // var role = currentUserService.Role;
 
             if (userId == null)
             {
@@ -75,7 +75,9 @@ namespace UserService.Services.Implementations
                 throw new NotFoundException("User not found.");
             }
 
-            await userRepository.DeleteAsync(user);
+            userRepository.Remove(user);
+
+            await unitOfWork.SaveChangesAsync();
         }
     }
 }

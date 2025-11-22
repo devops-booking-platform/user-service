@@ -20,11 +20,13 @@ namespace UserService.UnitTests.Services
             _userRepositoryMock = new Mock<IUserRepository>();
             _tokenServiceMock = new Mock<ITokenService>();
             _currentUserServiceMock = new Mock<ICurrentUserService>();
+            var unitOfWork = new Mock<IUnitOfWork>();
 
             _sut = new AuthService(
                 _userRepositoryMock.Object,
                 _tokenServiceMock.Object,
-                _currentUserServiceMock.Object
+                _currentUserServiceMock.Object,
+                unitOfWork.Object
             );
         }
 
@@ -174,7 +176,7 @@ namespace UserService.UnitTests.Services
             var act = () => _sut.Delete();
 
             await Assert.ThrowsAsync<UnauthorizedAccessException>(act);
-            _userRepositoryMock.Verify(r => r.DeleteAsync(It.IsAny<User>()), Times.Never);
+            _userRepositoryMock.Verify(r => r.Remove(It.IsAny<User>()), Times.Never);
         }
 
         [Fact]
@@ -190,7 +192,7 @@ namespace UserService.UnitTests.Services
             var act = () => _sut.Delete();
 
             await Assert.ThrowsAsync<NotFoundException>(act);
-            _userRepositoryMock.Verify(r => r.DeleteAsync(It.IsAny<User>()), Times.Never);
+            _userRepositoryMock.Verify(r => r.Remove(It.IsAny<User>()), Times.Never);
         }
 
         [Fact]
@@ -213,7 +215,7 @@ namespace UserService.UnitTests.Services
 
             await _sut.Delete();
 
-            _userRepositoryMock.Verify(r => r.DeleteAsync(user), Times.Once);
+            _userRepositoryMock.Verify(r => r.Remove(user), Times.Once);
         }
     }
 }

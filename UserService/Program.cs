@@ -6,6 +6,8 @@ using UserService.Configuration;
 using UserService.Data;
 using UserService.Infrastructure.ErrorHandling;
 using UserService.Infrastructure.Extensions;
+using UserService.Repositories.Implementations;
+using UserService.Repositories.Interfaces;
 using UserService.Services.Implementations;
 using UserService.Services.Interfaces;
 
@@ -45,6 +47,10 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddUserServiceDependencies();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
+
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 

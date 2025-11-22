@@ -1,10 +1,11 @@
 ﻿using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Microsoft.Extensions.DependencyInjection;
-using UserService.Data;
 using UserService.Domain.Entities;
+using UserService.Domain.Enums;
 using UserService.DTO;
 using UserService.IntegrationTests.Infrastructure;
+using UserService.Repositories.Interfaces;
 
 namespace UserService.IntegrationTests.Helpers
 {
@@ -26,22 +27,21 @@ namespace UserService.IntegrationTests.Helpers
             string address = "Address")
         {
             using var scope = factory.Services.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var uow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 
             var user = new User
             {
                 Username = username,
-                Email = email ?? $"{username}@example.com",
-                FirstName = firstName,
-                LastName = lastName,
-                Address = address,
-                Role = Domain.Enums.UserRole.Host,
+                Email = $"{username}@example.com",
+                FirstName = "Test",
+                LastName = "User",
+                Address = "Address",
+                Role = UserRole.Host,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(password)
             };
 
-            db.Users.Add(user);
-            await db.SaveChangesAsync();
-
+            await uow.Users.AddAsync(user);
+            await uow.SaveChangesAsync();
             return user;
         }
 
