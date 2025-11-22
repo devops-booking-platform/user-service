@@ -12,13 +12,20 @@ namespace UserService.UnitTests.Services
     {
         private readonly Mock<IUserRepository> _userRepositoryMock;
         private readonly Mock<ITokenService> _tokenServiceMock;
+        private readonly Mock<ICurrentUserService> _currentUserServiceMock;
         private readonly AuthService _sut;
 
         public AuthServiceTests()
         {
             _userRepositoryMock = new Mock<IUserRepository>();
             _tokenServiceMock = new Mock<ITokenService>();
-            _sut = new AuthService(_userRepositoryMock.Object, _tokenServiceMock.Object);
+            _currentUserServiceMock = new Mock<ICurrentUserService>();
+
+            _sut = new AuthService(
+                _userRepositoryMock.Object,
+                _tokenServiceMock.Object,
+                _currentUserServiceMock.Object
+            );
         }
 
         [Fact]
@@ -157,6 +164,56 @@ namespace UserService.UnitTests.Services
 
             Assert.Equal(expectedToken, result);
             _tokenServiceMock.Verify(t => t.GenerateToken(user), Times.Once);
+        }
+        
+        [Fact]
+        public async Task Delete_Should_ThrowUnauthorized_WhenUserIdIsNull()
+        {
+            _currentUserServiceMock.Setup(x => x.UserId).Returns((Guid?)null);
+
+            var act = () => _sut.Delete();
+
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(act);
+            _userRepositoryMock.Verify(r => r.DeleteAsync(It.IsAny<User>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task Delete_Should_ThrowNotFound_WhenUserDoesNotExist()
+        {
+            var userId = Guid.NewGuid();
+            _currentUserServiceMock.Setup(x => x.UserId).Returns(userId);
+
+            _userRepositoryMock
+                .Setup(r => r.GetByIdAsync(userId))
+                .ReturnsAsync((User?)null);
+
+            var act = () => _sut.Delete();
+
+            await Assert.ThrowsAsync<NotFoundException>(act);
+            _userRepositoryMock.Verify(r => r.DeleteAsync(It.IsAny<User>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task Delete_Should_DeleteUser_WhenUserExists()
+        {
+            var userId = Guid.NewGuid();
+
+            var user = new User
+            {
+                Id = userId,
+                Username = "tester",
+                PasswordHash = "hash"
+            };
+
+            _currentUserServiceMock.Setup(x => x.UserId).Returns(userId);
+
+            _userRepositoryMock
+                .Setup(r => r.GetByIdAsync(userId))
+                .ReturnsAsync(user);
+
+            await _sut.Delete();
+
+            _userRepositoryMock.Verify(r => r.DeleteAsync(user), Times.Once);
         }
     }
 }

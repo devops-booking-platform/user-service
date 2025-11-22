@@ -1,4 +1,5 @@
-﻿using UserService.Common.Exceptions;
+﻿using Microsoft.AspNetCore.Authorization;
+using UserService.Common.Exceptions;
 using UserService.Domain.Entities;
 using UserService.DTO;
 using UserService.Repositories.Interfaces;
@@ -57,10 +58,9 @@ namespace UserService.Services.Implementations
 
         public async Task Delete()
         {
-            // get user from token
             var userId = currentUserService.UserId;
 
-            // based on role do validations and deletions on other services
+            // TODO: based on role do validations and deletions on other services
             // var role = currentUserService.Role;
 
             if (userId == null)
@@ -72,7 +72,7 @@ namespace UserService.Services.Implementations
 
             if (user == null)
             {
-                throw new NotFoundException("User with given username or email already exists.");
+                throw new NotFoundException("User not found.");
             }
 
             await userRepository.DeleteAsync(user);

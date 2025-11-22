@@ -6,11 +6,13 @@ namespace UserService.Infrastructure.ErrorHandling
 {
     internal sealed class GlobalExceptionHandler : IExceptionHandler
     {
-        public async  ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
+        public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception,
+            CancellationToken cancellationToken)
         {
             var statusCode = exception switch
             {
                 ConflictException => StatusCodes.Status409Conflict,
+                NotFoundException => StatusCodes.Status404NotFound,
                 UnauthorizedAccessException => StatusCodes.Status401Unauthorized,
                 _ => StatusCodes.Status500InternalServerError
             };

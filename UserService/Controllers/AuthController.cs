@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using UserService.DTO;
 using UserService.Services.Interfaces;
 
@@ -28,7 +29,8 @@ namespace UserService.Controllers
             return Ok(new LoginResponseDTO { Token = jwtToken });
         }
 
-        [HttpDelete("{id}")]
+        [HttpDelete]
+        [Authorize]
         public async Task<IActionResult> DeleteAccount()
         {
             await _authService.Delete();
