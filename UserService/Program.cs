@@ -48,13 +48,6 @@ builder.Services.AddUserServiceDependencies();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
-
-builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
-
-
 builder.Services.AddAuthorization();
 var app = builder.Build();
 if (!app.Environment.IsEnvironment("Test"))
