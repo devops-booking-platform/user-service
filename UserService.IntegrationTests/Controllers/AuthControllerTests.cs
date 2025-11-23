@@ -2,6 +2,7 @@
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
+using UserService.Common.Constants;
 using UserService.DTO;
 using UserService.IntegrationTests.Helpers;
 using UserService.IntegrationTests.Infrastructure;
@@ -39,7 +40,7 @@ namespace UserService.IntegrationTests.Controllers
 
             var problem = await response2.Content.ReadFromJsonAsync<ProblemDetails>();
             Assert.NotNull(problem);
-            Assert.Equal("User with given username or email already exists.", problem.Detail);
+            Assert.Equal(ExceptionMessages.Auth.UserAlreadyExists, problem.Detail);
             Assert.Equal((int)HttpStatusCode.Conflict, problem.Status);
         }
 
@@ -58,7 +59,7 @@ namespace UserService.IntegrationTests.Controllers
 
             var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
             Assert.NotNull(problem);
-            Assert.Equal("Invalid username or password.", problem.Detail);
+            Assert.Equal(ExceptionMessages.Auth.InvalidCredentials, problem.Detail);
             Assert.Equal((int)HttpStatusCode.Unauthorized, problem.Status);
         }
 
@@ -116,7 +117,7 @@ namespace UserService.IntegrationTests.Controllers
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
 
             var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-            Assert.Equal("User not found.", problem!.Detail);
+            Assert.Equal(ExceptionMessages.User.UserNotFound, problem!.Detail);
         }
 
         [Fact]

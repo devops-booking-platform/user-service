@@ -1,4 +1,5 @@
 ﻿using Moq;
+using UserService.Common.Constants;
 using UserService.Common.Exceptions;
 using UserService.Domain.Entities;
 using UserService.DTO;
@@ -47,7 +48,7 @@ namespace UserService.UnitTests.Services
             _userRepositoryMock.Setup(r => r.ExistsByUsernameOrEmailAsync(dto.Username, dto.Email)).ReturnsAsync(true);
             var act = () => _sut.RegisterAsync(dto);
             var ex = await Assert.ThrowsAsync<ConflictException>(act);
-            Assert.Equal("User with given username or email already exists.", ex.Message);
+            Assert.Equal(ExceptionMessages.Auth.UserAlreadyExists, ex.Message);
             _userRepositoryMock.Verify(r => r.AddAsync(It.IsAny<User>()), Times.Never);
         }
 

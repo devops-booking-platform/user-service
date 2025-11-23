@@ -36,5 +36,21 @@ namespace UserService.Controllers
             await _authService.Delete();
             return NoContent();
         }
+
+        [Authorize]
+        [HttpGet("profile")]
+        public async Task<ActionResult<UserProfileResponseDTO>> GetProfile()
+        {
+            var profile = await _authService.GetProfileAsync();
+            return Ok(profile);
+        }
+
+        [Authorize]
+        [HttpPut("profile")]
+        public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequestDTO updateRequest)
+        {
+            var updatedProfile = await _authService.UpdateProfileAsync(updateRequest);
+            return Ok(updatedProfile);
+        }
     }
 }
