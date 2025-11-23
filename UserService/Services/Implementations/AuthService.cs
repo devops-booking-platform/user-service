@@ -6,19 +6,14 @@ using UserService.Services.Interfaces;
 
 namespace UserService.Services.Implementations
 {
-    public class AuthService : IAuthService
+    public class AuthService(IUserRepository userRepository,
+        ITokenService tokenService,
+        ICurrentUserService currentUserService,
+        IUnitOfWork unitOfWork) : IAuthService
     {
-        private readonly IUserRepository _userRepository;
-        private readonly ITokenService _tokenService;
-        public AuthService(IUserRepository userRepository, ITokenService tokenService)
-        {
-            _userRepository = userRepository;
-            _tokenService = tokenService;
-        }
-
         public async Task<string> LoginAsync(LoginRequestDTO loginRequest)
         {
-            var user = await _userRepository.GetByUsernameAsync(loginRequest.Username);
+            var user = await userRepository.GetByUsernameAsync(loginRequest.Username);
 
             if (user == null)
             {
@@ -32,13 +27,13 @@ namespace UserService.Services.Implementations
                 throw new UnauthorizedAccessException("Invalid username or password.");
             }
 
-            var token = _tokenService.GenerateToken(user);
+            var token = tokenService.GenerateToken(user);
             return token;
         }
 
         public async Task RegisterAsync(RegisterRequestDTO registerRequest)
         {
-            var userExists = await _userRepository
+            var userExists = await userRepository
                 .ExistsByUsernameOrEmailAsync(registerRequest.Username, registerRequest.Email);
 
             if (userExists)
@@ -58,7 +53,31 @@ namespace UserService.Services.Implementations
                 Role = registerRequest.Role
             };
 
-            await _userRepository.AddAsync(user);
+            await userRepository.AddAsync(user);
+            await unitOfWork.SaveChangesAsync();
+        }
+
+        public async Task Delete()
+        {
+            var userId = currentUserService.UserId;
+
+            // TODO: based on role do validations and deletions on other services
+
+            if (userId == null)
+            {
+                throw new UnauthorizedAccessException();
+            }
+            var user = await userRepository
+                .GetByIdAsync(userId.Value);
+
+            if (user == null)
+            {
+                throw new NotFoundException("User not found.");
+            }
+
+            userRepository.Remove(user);
+
+            await unitOfWork.SaveChangesAsync();
         }
     }
 }

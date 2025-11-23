@@ -6,6 +6,10 @@ using UserService.Configuration;
 using UserService.Data;
 using UserService.Infrastructure.ErrorHandling;
 using UserService.Infrastructure.Extensions;
+using UserService.Repositories.Implementations;
+using UserService.Repositories.Interfaces;
+using UserService.Services.Implementations;
+using UserService.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,6 +37,8 @@ builder.Services
     });
 // Add services to the container.
 builder.Services.AddControllers();
+builder.Services.AddHttpContextAccessor();
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGenWithAuth();
@@ -41,7 +47,6 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddUserServiceDependencies();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
-
 
 builder.Services.AddAuthorization();
 var app = builder.Build();
