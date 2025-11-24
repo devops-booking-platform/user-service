@@ -15,6 +15,14 @@ namespace UserService.Controllers
             _authService = authService;
         }
 
+        [Authorize]
+        [HttpGet("profile")]
+        public async Task<ActionResult<UserProfileResponseDTO>> GetProfile()
+        {
+            var profile = await _authService.GetProfileAsync();
+            return Ok(profile);
+        }
+
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequestDTO registerRequest)
         {
@@ -29,28 +37,28 @@ namespace UserService.Controllers
             return Ok(new LoginResponseDTO { Token = jwtToken });
         }
 
-        [HttpDelete]
-        [Authorize]
-        public async Task<IActionResult> DeleteAccount()
-        {
-            await _authService.Delete();
-            return NoContent();
-        }
-
-        [Authorize]
-        [HttpGet("profile")]
-        public async Task<ActionResult<UserProfileResponseDTO>> GetProfile()
-        {
-            var profile = await _authService.GetProfileAsync();
-            return Ok(profile);
-        }
-
         [Authorize]
         [HttpPut("profile")]
         public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequestDTO updateRequest)
         {
             var updatedProfile = await _authService.UpdateProfileAsync(updateRequest);
             return Ok(updatedProfile);
+        }
+
+        [Authorize]
+        [HttpPut("password")]
+        public async Task<IActionResult> UpdatePassword([FromBody] UpdatePasswordRequestDTO updatePasswordRequest)
+        {
+            await _authService.UpdatePasswordAsync(updatePasswordRequest);
+            return NoContent();
+        }
+
+        [HttpDelete]
+        [Authorize]
+        public async Task<IActionResult> DeleteAccount()
+        {
+            await _authService.Delete();
+            return NoContent();
         }
     }
 }

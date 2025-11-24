@@ -127,5 +127,20 @@ namespace UserService.Services.Implementations
                 Role = user.Role.ToString()
             };
         }
+
+        public async Task UpdatePasswordAsync(UpdatePasswordRequestDTO updatePasswordRequest)
+        {
+            var user = await GetCurrentUserOrThrowAsync();
+
+            var isValidPassword = BCrypt.Net.BCrypt.Verify(updatePasswordRequest.CurrentPassword, user.PasswordHash);
+
+            if (!isValidPassword)
+            {
+                throw new UnauthorizedAccessException(ExceptionMessages.Auth.InvalidCurrentPassword);
+            }
+            var passwordHash = BCrypt.Net.BCrypt.HashPassword(updatePasswordRequest.NewPassword);
+            user.PasswordHash = passwordHash;
+            await unitOfWork.SaveChangesAsync();
+        }
     }
 }

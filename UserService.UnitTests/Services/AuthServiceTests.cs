@@ -218,5 +218,174 @@ namespace UserService.UnitTests.Services
 
             _userRepositoryMock.Verify(r => r.Remove(user), Times.Once);
         }
+
+        [Fact]
+        public async Task UpdateProfileAsync_Should_ThrowUnauthorized_WhenUserIdIsNull()
+        {
+            _currentUserServiceMock.Setup(x => x.UserId).Returns((Guid?)null);
+
+            var dto = new UpdateProfileRequestDTO
+            {
+                Username = "newUsername",
+                Email = "new@example.com",
+                FirstName = "New",
+                LastName = "User",
+                Address = "New address"
+            };
+
+            var act = () => _sut.UpdateProfileAsync(dto);
+
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(act);
+        }
+
+        [Fact]
+        public async Task UpdateProfileAsync_Should_ThrowNotFound_WhenUserDoesNotExist()
+        {
+            var userId = Guid.NewGuid();
+            _currentUserServiceMock.Setup(x => x.UserId).Returns(userId);
+
+            _userRepositoryMock
+                .Setup(r => r.GetByIdAsync(userId))
+                .ReturnsAsync((User?)null);
+
+            var dto = new UpdateProfileRequestDTO
+            {
+                Username = "newUsername",
+                Email = "new@example.com",
+                FirstName = "New",
+                LastName = "User",
+                Address = "New address"
+            };
+
+            var act = () => _sut.UpdateProfileAsync(dto);
+
+            await Assert.ThrowsAsync<NotFoundException>(act);
+        }
+
+        [Fact]
+        public async Task UpdateProfileAsync_Should_ThrowConflict_WhenUsernameAlreadyTaken()
+        {
+            var userId = Guid.NewGuid();
+            var user = new User
+            {
+                Id = userId,
+                Username = "oldUsername",
+                Email = "old@example.com",
+                FirstName = "Old",
+                LastName = "User",
+                Address = "Old address",
+                Role = Domain.Enums.UserRole.Host
+            };
+
+            _currentUserServiceMock.Setup(x => x.UserId).Returns(userId);
+            _userRepositoryMock.Setup(r => r.GetByIdAsync(userId)).ReturnsAsync(user);
+
+            var dto = new UpdateProfileRequestDTO
+            {
+                Username = "newUsername", 
+                Email = "old@example.com", 
+                FirstName = "New",
+                LastName = "User",
+                Address = "New address"
+            };
+
+            _userRepositoryMock
+                .Setup(r => r.ExistsWithUsernameAsync(dto.Username, userId))
+                .ReturnsAsync(true);
+
+            var act = () => _sut.UpdateProfileAsync(dto);
+
+            var ex = await Assert.ThrowsAsync<ConflictException>(act);
+            Assert.Equal(ExceptionMessages.User.UsernameTaken, ex.Message);
+        }
+
+        [Fact]
+        public async Task UpdateProfileAsync_Should_ThrowConflict_WhenEmailAlreadyTaken()
+        {
+            var userId = Guid.NewGuid();
+            var user = new User
+            {
+                Id = userId,
+                Username = "oldUsername",
+                Email = "old@example.com",
+                FirstName = "Old",
+                LastName = "User",
+                Address = "Old address",
+                Role = Domain.Enums.UserRole.Host
+            };
+
+            _currentUserServiceMock.Setup(x => x.UserId).Returns(userId);
+            _userRepositoryMock.Setup(r => r.GetByIdAsync(userId)).ReturnsAsync(user);
+
+            var dto = new UpdateProfileRequestDTO
+            {
+                Username = "oldUsername",
+                Email = "new@example.com",
+                FirstName = "New",
+                LastName = "User",
+                Address = "New address"
+            };
+
+            _userRepositoryMock
+                .Setup(r => r.ExistsWithEmailAsync(dto.Email, userId))
+                .ReturnsAsync(true);
+
+            var act = () => _sut.UpdateProfileAsync(dto);
+
+            var ex = await Assert.ThrowsAsync<ConflictException>(act);
+            Assert.Equal(ExceptionMessages.User.EmailTaken, ex.Message);
+        }
+
+        [Fact]
+        public async Task UpdateProfileAsync_Should_UpdateUserAndReturnProfile_WhenDataIsValid()
+        {
+            var userId = Guid.NewGuid();
+            var user = new User
+            {
+                Id = userId,
+                Username = "oldUsername",
+                Email = "old@example.com",
+                FirstName = "Old",
+                LastName = "User",
+                Address = "Old address",
+                Role = Domain.Enums.UserRole.Host
+            };
+
+            _currentUserServiceMock.Setup(x => x.UserId).Returns(userId);
+            _userRepositoryMock.Setup(r => r.GetByIdAsync(userId)).ReturnsAsync(user);
+
+            var dto = new UpdateProfileRequestDTO
+            {
+                Username = "newUsername",
+                Email = "new@example.com",
+                FirstName = "New",
+                LastName = "User",
+                Address = "New address"
+            };
+
+            _userRepositoryMock
+                .Setup(r => r.ExistsWithUsernameAsync(dto.Username, userId))
+                .ReturnsAsync(false);
+
+            _userRepositoryMock
+                .Setup(r => r.ExistsWithEmailAsync(dto.Email, userId))
+                .ReturnsAsync(false);
+
+            var result = await _sut.UpdateProfileAsync(dto);
+
+            Assert.Equal(dto.Username, user.Username);
+            Assert.Equal(dto.Email, user.Email);
+            Assert.Equal(dto.FirstName, user.FirstName);
+            Assert.Equal(dto.LastName, user.LastName);
+            Assert.Equal(dto.Address, user.Address);
+
+            Assert.Equal(dto.Username, result.Username);
+            Assert.Equal(dto.Email, result.Email);
+            Assert.Equal(dto.FirstName, result.FirstName);
+            Assert.Equal(dto.LastName, result.LastName);
+            Assert.Equal(dto.Address, result.Address);
+            Assert.Equal(user.Role.ToString(), result.Role);
+        }
+
     }
 }

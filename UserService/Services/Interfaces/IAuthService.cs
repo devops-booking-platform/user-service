@@ -9,5 +9,6 @@ namespace UserService.Services.Interfaces
         Task<string> LoginAsync(LoginRequestDTO loginRequest);
         Task RegisterAsync(RegisterRequestDTO registerRequest);
         Task Delete();
+        Task UpdatePasswordAsync(UpdatePasswordRequestDTO updatePasswordRequest);
     }
 }

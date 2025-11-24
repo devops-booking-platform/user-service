@@ -6,6 +6,8 @@
         {
             public const string InvalidCredentials = "Invalid username or password.";
             public const string UserAlreadyExists = "User with given username or email already exists.";
+            public const string InvalidCurrentPassword = "Invalid current password.";
+
         }
 
         public static class User
