@@ -1,7 +1,10 @@
 ﻿using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
+using UserService.Common.Constants;
+using UserService.Data;
 using UserService.DTO;
 using UserService.IntegrationTests.Helpers;
 using UserService.IntegrationTests.Infrastructure;
@@ -39,7 +42,7 @@ namespace UserService.IntegrationTests.Controllers
 
             var problem = await response2.Content.ReadFromJsonAsync<ProblemDetails>();
             Assert.NotNull(problem);
-            Assert.Equal("User with given username or email already exists.", problem.Detail);
+            Assert.Equal(ExceptionMessages.Auth.UserAlreadyExists, problem.Detail);
             Assert.Equal((int)HttpStatusCode.Conflict, problem.Status);
         }
 
@@ -58,7 +61,7 @@ namespace UserService.IntegrationTests.Controllers
 
             var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
             Assert.NotNull(problem);
-            Assert.Equal("Invalid username or password.", problem.Detail);
+            Assert.Equal(ExceptionMessages.Auth.InvalidCredentials, problem.Detail);
             Assert.Equal((int)HttpStatusCode.Unauthorized, problem.Status);
         }
 
@@ -116,7 +119,7 @@ namespace UserService.IntegrationTests.Controllers
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
 
             var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-            Assert.Equal("User not found.", problem!.Detail);
+            Assert.Equal(ExceptionMessages.User.UserNotFound, problem!.Detail);
         }
 
         [Fact]
@@ -131,6 +134,106 @@ namespace UserService.IntegrationTests.Controllers
                 HttpMethod.Delete, "/api/auth", token);
 
             Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task UpdateProfile_Should_Return401_WhenNotLoggedIn()
+        {
+            var updateDto = new UpdateProfileRequestDTO
+            {
+                Username = "new_username",
+                Email = "new@example.com",
+                FirstName = "New",
+                LastName = "User",
+                Address = "New address"
+            };
+
+            var response = await _client.PutAsJsonAsync("/api/auth/profile", updateDto);
+
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task UpdateProfile_Should_Return404_WhenUserNotFound()
+        {
+            var username = "profile_missing_user";
+            var password = "Password123!";
+
+            var token = await _authHelper.RegisterAndAuthenticateAsync(username, password);
+
+            using (var scope = _authHelper.Factory.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                var user = db.Users.Single(u => u.Username == username);
+                db.Users.Remove(user);
+                await db.SaveChangesAsync();
+            }
+
+            var updateDto = new UpdateProfileRequestDTO
+            {
+                Username = "whatever",
+                Email = "whatever@example.com",
+                FirstName = "New",
+                LastName = "User",
+                Address = "New address"
+            };
+
+            _client.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", token);
+
+            var response = await _client.PutAsJsonAsync("/api/auth/profile", updateDto);
+
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+
+            var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+            Assert.NotNull(problem);
+            Assert.Equal(ExceptionMessages.User.UserNotFound, problem.Detail);
+            Assert.Equal((int)HttpStatusCode.NotFound, problem.Status);
+        }
+
+        [Fact]
+        public async Task UpdateProfile_Should_Return200_AndUpdateData_WhenRequestIsValid()
+        {
+            var username = "update_profile_user";
+            var password = "Password123!";
+
+            var token = await _authHelper.RegisterAndAuthenticateAsync(username, password);
+
+            var updateDto = new UpdateProfileRequestDTO
+            {
+                Username = "updated_username",
+                Email = "updated@example.com",
+                FirstName = "UpdatedFirst",
+                LastName = "UpdatedLast",
+                Address = "Updated address"
+            };
+
+            _client.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", token);
+
+            var response = await _client.PutAsJsonAsync("/api/auth/profile", updateDto);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            var profile = await response.Content.ReadFromJsonAsync<UserProfileResponseDTO>();
+            Assert.NotNull(profile);
+
+            Assert.Equal(updateDto.Username, profile!.Username);
+            Assert.Equal(updateDto.Email, profile.Email);
+            Assert.Equal(updateDto.FirstName, profile.FirstName);
+            Assert.Equal(updateDto.LastName, profile.LastName);
+            Assert.Equal(updateDto.Address, profile.Address);
+
+            using (var scope = _authHelper.Factory.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                var userInDb = db.Users.Single(u => u.Username == updateDto.Username);
+
+                Assert.Equal(updateDto.Email, userInDb.Email);
+                Assert.Equal(updateDto.FirstName, userInDb.FirstName);
+                Assert.Equal(updateDto.LastName, userInDb.LastName);
+                Assert.Equal(updateDto.Address, userInDb.Address);
+            }
         }
     }
 }
