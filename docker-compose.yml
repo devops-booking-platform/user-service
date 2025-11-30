@@ -1,6 +1,23 @@
 version: "3.9"
 
 services:
+  rabbitmq:
+    container_name: rabbitmq
+    image: rabbitmq:3.12-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - shared-net
+
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: devops-sql
@@ -11,6 +28,8 @@ services:
       - "1433:1433"
     volumes:
       - sql-data:/var/opt/mssql
+    networks:
+      - shared-net
 
   user-service:
     build:
@@ -19,11 +38,24 @@ services:
     container_name: user-service
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=UserServiceDb;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True
+      - ConnectionStrings__DefaultConnection=Server=devops-sql,1433;Database=UserServiceDb;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True
+      - RabbitMq__Host=rabbitmq
+      - RabbitMq__User=guest
+      - RabbitMq__Pass=guest
+      - RabbitMq__VirtualHost=/
+      - RabbitMq__Exchange=integration
     depends_on:
       - sqlserver
+      - rabbitmq
     ports:
       - "5001:8080"
+    networks:
+      - shared-net
 
 volumes:
   sql-data:
+
+networks:
+  shared-net:
+    external: true
+    name: shared-net

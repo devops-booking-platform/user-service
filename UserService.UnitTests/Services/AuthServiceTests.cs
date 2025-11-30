@@ -1,5 +1,6 @@
 ﻿using Moq;
 using UserService.Common.Constants;
+using UserService.Common.Events;
 using UserService.Common.Exceptions;
 using UserService.Domain.Entities;
 using UserService.DTO;
@@ -14,6 +15,8 @@ namespace UserService.UnitTests.Services
         private readonly Mock<IUserRepository> _userRepositoryMock;
         private readonly Mock<ITokenService> _tokenServiceMock;
         private readonly Mock<ICurrentUserService> _currentUserServiceMock;
+        private readonly Mock<IEventBus> _eventBus;
+
         private readonly AuthService _sut;
 
         public AuthServiceTests()
@@ -22,12 +25,15 @@ namespace UserService.UnitTests.Services
             _tokenServiceMock = new Mock<ITokenService>();
             _currentUserServiceMock = new Mock<ICurrentUserService>();
             var unitOfWork = new Mock<IUnitOfWork>();
+            _eventBus = new Mock<IEventBus>();
 
             _sut = new AuthService(
                 _userRepositoryMock.Object,
                 _tokenServiceMock.Object,
                 _currentUserServiceMock.Object,
-                unitOfWork.Object
+                unitOfWork.Object,
+                _eventBus.Object
+
             );
         }
 

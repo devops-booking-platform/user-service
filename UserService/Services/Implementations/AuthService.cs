@@ -1,4 +1,5 @@
 ﻿using UserService.Common.Constants;
+using UserService.Common.Events;
 using UserService.Common.Exceptions;
 using UserService.Domain.Entities;
 using UserService.DTO;
@@ -10,7 +11,8 @@ namespace UserService.Services.Implementations
     public class AuthService(IUserRepository userRepository,
         ITokenService tokenService,
         ICurrentUserService currentUserService,
-        IUnitOfWork unitOfWork) : IAuthService
+        IUnitOfWork unitOfWork,
+        IEventBus eventBus) : IAuthService
     {
         private async Task<User> GetCurrentUserOrThrowAsync()
         {
@@ -74,18 +76,18 @@ namespace UserService.Services.Implementations
         public async Task Delete()
         {
             var user = await GetCurrentUserOrThrowAsync();
-
             // TODO: based on role do validations and deletions on other services
 
             userRepository.Remove(user);
-
             await unitOfWork.SaveChangesAsync();
+
+            var @event = new UserDeletedIntegrationEvent(user.Id, user.Role.ToString());
+            await eventBus.PublishAsync(@event);
         }
 
         public async Task<UserProfileResponseDTO> GetProfileAsync()
         {
             var user = await GetCurrentUserOrThrowAsync();
-
             return new UserProfileResponseDTO
             {
                 Username = user.Username,
