@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using UserService.Common.Events;
 using UserService.Data;
 
 namespace UserService.IntegrationTests.Infrastructure
@@ -23,7 +25,8 @@ namespace UserService.IntegrationTests.Infrastructure
 
                 services.AddDbContext<ApplicationDbContext>(options =>
                     options.UseInMemoryDatabase("UserServiceTestDb"));
-
+                services.RemoveAll<IEventBus>();
+                services.AddSingleton<IEventBus, NoOpEventBus>();
                 var serviceProvider = services.BuildServiceProvider();
 
                 using var scope = serviceProvider.CreateScope();

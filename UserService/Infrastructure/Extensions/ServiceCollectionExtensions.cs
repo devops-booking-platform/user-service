@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using UserService.Common.Events;
 using UserService.Repositories.Implementations;
 using UserService.Repositories.Interfaces;
 using UserService.Services.Implementations;
@@ -16,6 +17,7 @@ namespace UserService.Infrastructure.Extensions
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
             services.AddScoped<ICurrentUserService, CurrentUserService>();
+            services.AddSingleton<IEventBus, RabbitMqEventBus>();
 
             return services;
         }
