@@ -28,6 +28,8 @@ namespace UserService.Services.Implementations
                 new(ClaimTypes.Name, user.Username),
                 new(ClaimTypes.Role, user.Role.ToString()),
                 new(ClaimTypes.Email, user.Email),
+                new(ClaimTypes.GivenName, user.FirstName),
+                new(ClaimTypes.Surname, user.LastName),
             };
 
             var tokenDescriptor = new SecurityTokenDescriptor
