@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using UserService.Common.Events;
 using UserService.Data;
+using UserService.Infrastructure.Clients;
 
 namespace UserService.IntegrationTests.Infrastructure
 {
@@ -27,7 +28,10 @@ namespace UserService.IntegrationTests.Infrastructure
                     options.UseInMemoryDatabase("UserServiceTestDb"));
                 services.RemoveAll<IEventBus>();
                 services.AddSingleton<IEventBus, NoOpEventBus>();
-                var serviceProvider = services.BuildServiceProvider();
+				services.RemoveAll<IReservationClient>();
+                services.AddSingleton<IReservationClient>(new FakeReservationClient(eligible: true));
+
+				var serviceProvider = services.BuildServiceProvider();
 
                 using var scope = serviceProvider.CreateScope();
                 var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();

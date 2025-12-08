@@ -4,6 +4,7 @@ using UserService.Common.Events;
 using UserService.Common.Exceptions;
 using UserService.Domain.Entities;
 using UserService.DTO;
+using UserService.Infrastructure.Clients;
 using UserService.Repositories.Interfaces;
 using UserService.Services.Implementations;
 using UserService.Services.Interfaces;
@@ -15,6 +16,7 @@ namespace UserService.UnitTests.Services
         private readonly Mock<IUserRepository> _userRepositoryMock;
         private readonly Mock<ITokenService> _tokenServiceMock;
         private readonly Mock<ICurrentUserService> _currentUserServiceMock;
+        private readonly Mock<IReservationClient> _reservationClientMock;
         private readonly Mock<IEventBus> _eventBus;
 
         private readonly AuthService _sut;
@@ -24,6 +26,7 @@ namespace UserService.UnitTests.Services
             _userRepositoryMock = new Mock<IUserRepository>();
             _tokenServiceMock = new Mock<ITokenService>();
             _currentUserServiceMock = new Mock<ICurrentUserService>();
+			_reservationClientMock = new Mock<IReservationClient>();
             var unitOfWork = new Mock<IUnitOfWork>();
             _eventBus = new Mock<IEventBus>();
 
@@ -32,6 +35,7 @@ namespace UserService.UnitTests.Services
                 _tokenServiceMock.Object,
                 _currentUserServiceMock.Object,
                 unitOfWork.Object,
+                _reservationClientMock.Object,
                 _eventBus.Object
 
             );
@@ -180,7 +184,7 @@ namespace UserService.UnitTests.Services
         {
             _currentUserServiceMock.Setup(x => x.UserId).Returns((Guid?)null);
 
-            var act = () => _sut.Delete();
+            var act = () => _sut.Delete(CancellationToken.None);
 
             await Assert.ThrowsAsync<UnauthorizedAccessException>(act);
             _userRepositoryMock.Verify(r => r.Remove(It.IsAny<User>()), Times.Never);
@@ -196,36 +200,41 @@ namespace UserService.UnitTests.Services
                 .Setup(r => r.GetByIdAsync(userId))
                 .ReturnsAsync((User?)null);
 
-            var act = () => _sut.Delete();
+            var act = () => _sut.Delete(CancellationToken.None);
 
             await Assert.ThrowsAsync<NotFoundException>(act);
             _userRepositoryMock.Verify(r => r.Remove(It.IsAny<User>()), Times.Never);
         }
 
-        [Fact]
-        public async Task Delete_Should_DeleteUser_WhenUserExists()
-        {
-            var userId = Guid.NewGuid();
+		[Fact]
+		public async Task Delete_Should_DeleteUser_WhenUserExists()
+		{
+			var userId = Guid.NewGuid();
 
-            var user = new User
-            {
-                Id = userId,
-                Username = "tester",
-                PasswordHash = "hash"
-            };
+			var user = new User
+			{
+				Id = userId,
+				Username = "tester",
+				PasswordHash = "hash",
+				Role = Domain.Enums.UserRole.Guest
+			};
 
-            _currentUserServiceMock.Setup(x => x.UserId).Returns(userId);
+			_currentUserServiceMock.Setup(x => x.UserId).Returns(userId);
 
-            _userRepositoryMock
-                .Setup(r => r.GetByIdAsync(userId))
-                .ReturnsAsync(user);
+			_userRepositoryMock
+				.Setup(r => r.GetByIdAsync(userId))
+				.ReturnsAsync(user);
 
-            await _sut.Delete();
+			_reservationClientMock
+				.Setup(x => x.GetGuestDeletionEligibilityAsync(userId, It.IsAny<CancellationToken>()))
+				.ReturnsAsync(true);
 
-            _userRepositoryMock.Verify(r => r.Remove(user), Times.Once);
-        }
+			await _sut.Delete(CancellationToken.None);
 
-        [Fact]
+			_userRepositoryMock.Verify(r => r.Remove(user), Times.Once);
+		}
+
+		[Fact]
         public async Task UpdateProfileAsync_Should_ThrowUnauthorized_WhenUserIdIsNull()
         {
             _currentUserServiceMock.Setup(x => x.UserId).Returns((Guid?)null);
