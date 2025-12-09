@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using UserService.Common.Events;
+using UserService.Infrastructure.Clients;
 using UserService.Repositories.Implementations;
 using UserService.Repositories.Interfaces;
 using UserService.Services.Implementations;
@@ -9,13 +10,17 @@ namespace UserService.Infrastructure.Extensions
 {
     public static class ServiceCollectionExtensions
     {
-        public static IServiceCollection AddUserServiceDependencies(this IServiceCollection services)
+        public static IServiceCollection AddUserServiceDependencies(this IServiceCollection services, IConfiguration config)
         {
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();
-            services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+			services.AddHttpClient<IReservationClient, ReservationClient>(http =>
+			{
+				http.BaseAddress = new Uri(config["Services:Reservation:BaseUrl"]!);
+			});
+			services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
             services.AddScoped<ICurrentUserService, CurrentUserService>();
             services.AddSingleton<IEventBus, RabbitMqEventBus>();
 

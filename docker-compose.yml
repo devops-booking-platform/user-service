@@ -44,6 +44,8 @@ services:
       - RabbitMq__Pass=guest
       - RabbitMq__VirtualHost=/
       - RabbitMq__Exchange=integration
+      - Services__Reservation__BaseUrl=http://reservation-service:8080
+
     depends_on:
       - sqlserver
       - rabbitmq

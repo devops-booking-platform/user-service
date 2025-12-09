@@ -55,9 +55,9 @@ namespace UserService.Controllers
 
         [HttpDelete]
         [Authorize]
-        public async Task<IActionResult> DeleteAccount()
+        public async Task<IActionResult> DeleteAccount(CancellationToken ct)
         {
-            await _authService.Delete();
+            await _authService.Delete(ct);
             return NoContent();
         }
     }
