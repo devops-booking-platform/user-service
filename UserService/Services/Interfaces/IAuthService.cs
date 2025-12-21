@@ -8,7 +8,7 @@ namespace UserService.Services.Interfaces
         Task<UserProfileResponseDTO> UpdateProfileAsync(UpdateProfileRequestDTO updateRequest);
         Task<string> LoginAsync(LoginRequestDTO loginRequest);
         Task RegisterAsync(RegisterRequestDTO registerRequest);
-        Task Delete(CancellationToken ct = default);
+        Task DeleteAsync(CancellationToken ct = default);
         Task UpdatePasswordAsync(UpdatePasswordRequestDTO updatePasswordRequest);
     }
 }
