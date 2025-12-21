@@ -45,6 +45,18 @@ builder.Services.AddUserServiceDependencies(builder.Configuration);
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowOrigins", policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:4200")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+});
+
 builder.Services.AddAuthorization();
 var app = builder.Build();
 if (!app.Environment.IsEnvironment("Test"))
@@ -63,6 +75,9 @@ if (app.Environment.IsDevelopment())
 	app.UseSwagger();
 	app.UseSwaggerUI();
 }
+
+app.UseCors("AllowOrigins");
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
