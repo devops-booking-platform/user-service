@@ -1,5 +1,6 @@
 ﻿using UserService.Common.Constants;
 using UserService.Common.Events;
+using UserService.Common.Events.Published;
 using UserService.Common.Exceptions;
 using UserService.Domain.Enums;
 using UserService.DTO;
@@ -76,20 +77,28 @@ namespace UserService.Services.Implementations
 			await unitOfWork.SaveChangesAsync();
 		}
 
-		public async Task Delete(CancellationToken ct = default)
+		public async Task DeleteAsync(CancellationToken ct = default)
 		{
 			var user = await GetCurrentUserOrThrowAsync();
 			bool eligible = user.Role == UserRole.Guest
-		? await reservationClient.GetGuestDeletionEligibilityAsync(user.Id, ct)
-		: await reservationClient.GetHostDeletionEligibilityAsync(user.Id, ct);
+			? await reservationClient.GetGuestDeletionEligibilityAsync(user.Id, ct)
+			: await reservationClient.GetHostDeletionEligibilityAsync(user.Id, ct);
 
 			if (!eligible)
 				throw new ConflictException("Account cannot be deleted because you have active or upcoming reservations.");
+
 			userRepository.Remove(user);
 			await unitOfWork.SaveChangesAsync();
 
-			var @event = new UserDeletedIntegrationEvent(user.Id, user.Role.ToString());
-			await eventBus.PublishAsync(@event);
+			switch(user.Role)
+			{
+				case UserRole.Guest:
+					await eventBus.PublishAsync(new GuestDeletedIntegrationEvent(user.Id), ct);
+					break;
+				case UserRole.Host:
+					await eventBus.PublishAsync(new HostDeletedIntegrationEvent(user.Id), ct);
+					break;
+			}
 		}
 
 		public async Task<UserProfileResponseDTO> GetProfileAsync()

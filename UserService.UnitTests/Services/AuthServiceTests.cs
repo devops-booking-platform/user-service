@@ -184,7 +184,7 @@ namespace UserService.UnitTests.Services
         {
             _currentUserServiceMock.Setup(x => x.UserId).Returns((Guid?)null);
 
-            var act = () => _sut.Delete(CancellationToken.None);
+            var act = () => _sut.DeleteAsync(CancellationToken.None);
 
             await Assert.ThrowsAsync<UnauthorizedAccessException>(act);
             _userRepositoryMock.Verify(r => r.Remove(It.IsAny<User>()), Times.Never);
@@ -200,7 +200,7 @@ namespace UserService.UnitTests.Services
                 .Setup(r => r.GetByIdAsync(userId))
                 .ReturnsAsync((User?)null);
 
-            var act = () => _sut.Delete(CancellationToken.None);
+            var act = () => _sut.DeleteAsync(CancellationToken.None);
 
             await Assert.ThrowsAsync<NotFoundException>(act);
             _userRepositoryMock.Verify(r => r.Remove(It.IsAny<User>()), Times.Never);
@@ -229,7 +229,7 @@ namespace UserService.UnitTests.Services
 				.Setup(x => x.GetGuestDeletionEligibilityAsync(userId, It.IsAny<CancellationToken>()))
 				.ReturnsAsync(true);
 
-			await _sut.Delete(CancellationToken.None);
+			await _sut.DeleteAsync(CancellationToken.None);
 
 			_userRepositoryMock.Verify(r => r.Remove(user), Times.Once);
 		}
