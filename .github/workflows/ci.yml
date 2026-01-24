@@ -2,22 +2,27 @@ name: User Service CI
 
 on:
   push:
-    branches:
-      - develop
-      - main
+    branches: [develop, main]
   pull_request:
-    branches:
-      - develop
-      - main
+    branches: [develop, main]
+  workflow_dispatch:
+    inputs:
+      push_image:
+        description: "Push image to GHCR (true/false)"
+        required: true
+        default: "true"
+
+permissions:
+  contents: read
+  packages: write
 
 env:
   DOTNET_VERSION: "8.0.x"
   SOLUTION_PATH: "./UserService/UserService.sln"
 
 jobs:
-  build-and-analyze:
+  build_test_sonar:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -57,5 +62,65 @@ jobs:
       - name: SonarCloud - End
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: dotnet-sonarscanner end /d:sonar.token="$SONAR_TOKEN"
+
+  docker_build_pr:
+    needs: build_test_sonar
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Docker build (no push) - verify Dockerfile
         run: |
-          dotnet-sonarscanner end /d:sonar.token="$SONAR_TOKEN"
+          docker build -t user-service:pr -f UserService/Dockerfile UserService
+
+  push_image_kaniko:
+    needs: build_test_sonar
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'push' && (github.ref_name == 'develop' || github.ref_name == 'main')) ||
+      (github.event_name == 'workflow_dispatch' && inputs.push_image == 'true')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Compute image name & tags
+        id: vars
+        shell: bash
+        run: |
+          OWNER_LC="$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')"
+          REPO_LC="$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]')"
+          echo "image=ghcr.io/${OWNER_LC}/${REPO_LC}" >> $GITHUB_OUTPUT
+          echo "tag_sha=${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "tag_branch=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+
+      - name: Kaniko build & push (GHCR)
+        shell: bash
+        run: |
+          DOCKERFILE="./UserService/Dockerfile"
+          CONTEXT="./UserService"
+
+          mkdir -p "${{ github.workspace }}/kaniko-docker"
+          cat > "${{ github.workspace }}/kaniko-docker/config.json" <<EOF
+          {
+            "auths": {
+              "ghcr.io": {
+                "username": "${{ github.actor }}",
+                "password": "${{ secrets.GITHUB_TOKEN }}"
+              }
+            }
+          }
+          EOF
+
+          docker run --rm \
+            -v "${{ github.workspace }}:/workspace" \
+            -v "${{ github.workspace }}/kaniko-docker:/kaniko/.docker" \
+            gcr.io/kaniko-project/executor:latest \
+            --context "/workspace/${CONTEXT}" \
+            --dockerfile "/workspace/${DOCKERFILE}" \
+            --destination "${{ steps.vars.outputs.image }}:${{ steps.vars.outputs.tag_sha }}" \
+            --destination "${{ steps.vars.outputs.image }}:${{ steps.vars.outputs.tag_branch }}" \
+            --cache=true
