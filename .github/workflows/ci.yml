@@ -5,12 +5,6 @@ on:
     branches: [develop, main]
   pull_request:
     branches: [develop, main]
-  workflow_dispatch:
-    inputs:
-      push_image:
-        description: "Push image to GHCR (true/false)"
-        required: true
-        default: "true"
 
 permissions:
   contents: read
@@ -73,15 +67,12 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Docker build (no push) - verify Dockerfile
-        run: |
-          docker build -t user-service:pr -f UserService/Dockerfile UserService
+        run: docker build -t user-service:pr -f UserService/Dockerfile UserService
 
   push_image_kaniko:
     needs: build_test_sonar
     runs-on: ubuntu-latest
-    if: |
-      (github.event_name == 'push' && (github.ref_name == 'develop' || github.ref_name == 'main')) ||
-      (github.event_name == 'workflow_dispatch' && inputs.push_image == 'true')
+    if: github.event_name == 'push'
 
     steps:
       - name: Checkout code
