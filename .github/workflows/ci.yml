@@ -69,7 +69,7 @@ jobs:
       - name: Docker build (no push) - verify Dockerfile
         run: docker build -t user-service:pr -f UserService/Dockerfile UserService
 
-  push_image_kaniko:
+  containerize_kaniko:
     needs: build_test_sonar
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
