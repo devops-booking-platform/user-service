@@ -11,6 +11,7 @@ using UserService.Configuration;
 using UserService.Data;
 using UserService.Infrastructure.ErrorHandling;
 using UserService.Infrastructure.Extensions;
+using Prometheus;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog((ctx, lc) => lc
@@ -24,6 +25,8 @@ var compositeTextMapPropagator = new CompositeTextMapPropagator(new TextMapPropa
 });
 Sdk.SetDefaultTextMapPropagator(compositeTextMapPropagator);
 var otlpEndpoint = builder.Configuration["OpenTelemetry:OtlpExporter:Endpoint"];
+
+builder.Services.AddHealthChecks();
 
 builder.Services.AddOpenTelemetry()
     .WithTracing(tracing =>
@@ -98,6 +101,9 @@ if (!app.Environment.IsEnvironment("Test"))
 		db.Database.Migrate();
 	}
 }
+
+app.UseHttpMetrics();
+
 app.UseRouting();
 app.UseExceptionHandler();
 // Configure the HTTP request pipeline.
@@ -112,6 +118,7 @@ app.UseCors("AllowOrigins");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapMetrics();
 app.MapGet("/health", () => "OK");
 app.Run();
 public partial class Program { }
