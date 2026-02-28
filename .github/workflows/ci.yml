@@ -1,0 +1,152 @@
+name: User Service CI
+
+on:
+  push:
+    branches: [develop, main]
+    tags:
+      - 'v*.*.*'
+  pull_request:
+    branches: [develop, main]
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  DOTNET_VERSION: "8.0.x"
+  SOLUTION_PATH: "./UserService/UserService.sln"
+
+jobs:
+  build_test_sonar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      # Cache NuGet packages
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json', '**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Install SonarCloud scanner
+        run: dotnet tool install --global dotnet-sonarscanner
+
+      - name: Add .NET tools to PATH
+        run: echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
+
+      - name: SonarCloud - Begin
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          dotnet-sonarscanner begin \
+            /k:"devops-booking-platform_user-service" \
+            /o:"devops-booking-platform" \
+            /d:sonar.host.url="https://sonarcloud.io" \
+            /d:sonar.token="$SONAR_TOKEN"
+
+      - name: Restore
+        run: dotnet restore ${{ env.SOLUTION_PATH }}
+
+      - name: Build
+        run: dotnet build ${{ env.SOLUTION_PATH }} --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test ${{ env.SOLUTION_PATH }} --configuration Release --no-restore --no-build --verbosity normal
+
+      - name: SonarCloud - End
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: dotnet-sonarscanner end /d:sonar.token="$SONAR_TOKEN"
+
+  docker_build_pr:
+    needs: build_test_sonar
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Docker build (no push) - verify Dockerfile
+        run: docker build -t user-service:pr -f UserService/Dockerfile UserService
+
+  containerize_kaniko:
+    needs: build_test_sonar
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref_name == 'develop' || github.ref_name == 'main' || startsWith(github.ref, 'refs/tags/v'))
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate Version Tags
+        id: meta
+        shell: bash
+        run: |
+          OWNER_LC="$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')"
+          REPO_LC="$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]')"
+          IMAGE_NAME="ghcr.io/${OWNER_LC}/${REPO_LC}"
+          
+          echo "image=${IMAGE_NAME}" >> $GITHUB_OUTPUT
+          
+          TAGS="${IMAGE_NAME}:sha-${GITHUB_SHA::7}"
+          
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+            TAGS="${TAGS},${IMAGE_NAME}:${VERSION}"
+            TAGS="${TAGS},${IMAGE_NAME}:latest"
+            MAJOR=$(echo ${VERSION} | cut -d. -f1)
+            MINOR=$(echo ${VERSION} | cut -d. -f1-2)
+            TAGS="${TAGS},${IMAGE_NAME}:${MAJOR}"
+            TAGS="${TAGS},${IMAGE_NAME}:${MINOR}"
+          else
+            TAGS="${TAGS},${IMAGE_NAME}:${{ github.ref_name }}"
+          fi
+          
+          echo "tags=${TAGS}" >> $GITHUB_OUTPUT
+          echo "Container Image tags: ${TAGS}"
+
+      - name: Kaniko build & push (GHCR) with caching
+        shell: bash
+        run: |
+          DOCKERFILE="./UserService/Dockerfile"
+          CONTEXT="./UserService"
+
+          mkdir -p "${{ github.workspace }}/kaniko-docker"
+          cat > "${{ github.workspace }}/kaniko-docker/config.json" <<EOF
+          {
+            "auths": {
+              "ghcr.io": {
+                "username": "${{ github.actor }}",
+                "password": "${{ secrets.GITHUB_TOKEN }}"
+              }
+            }
+          }
+          EOF
+
+          DESTINATIONS=""
+          IFS=',' read -ra TAG_ARRAY <<< "${{ steps.meta.outputs.tags }}"
+          for TAG in "${TAG_ARRAY[@]}"; do
+            DESTINATIONS="${DESTINATIONS} --destination ${TAG}"
+          done
+
+          docker run --rm \
+            -v "${{ github.workspace }}:/workspace" \
+            -v "${{ github.workspace }}/kaniko-docker:/kaniko/.docker" \
+            gcr.io/kaniko-project/executor:latest \
+            --context "/workspace/${CONTEXT}" \
+            --dockerfile "/workspace/${DOCKERFILE}" \
+            ${DESTINATIONS} \
+            --cache=true \
+            --cache-repo="${{ steps.meta.outputs.image }}/cache" \
+            --compressed-caching=false
